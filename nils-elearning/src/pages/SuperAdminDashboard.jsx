@@ -363,6 +363,34 @@ const SuperAdminDashboard = () => {
                           </div>
                         ))}
                       </div>
+
+                      <div className="mt-10 pt-8 border-t border-gray-200 dark:border-gray-800">
+                        <div className="flex items-center justify-between mb-4">
+                          <div>
+                            <h2 className="font-bold text-gray-900 dark:text-white flex items-center gap-2 text-sm"><HelpCircle className="w-5 h-5 text-nilsGold" /> Final Quiz Questions</h2>
+                            <p className="text-[10px] text-gray-500">Add questions to enable the final exam</p>
+                          </div>
+                          <button onClick={() => { setEditingQuestion(null); setQuestionForm({ question: '', correct_answer: '', wrong_answer1: '', wrong_answer2: '', wrong_answer3: '' }); setShowQuizModal(true); }} className="btn-outline text-xs py-2 px-4 shadow-sm bg-white"><Plus className="w-4 h-4 mr-1" /> Add Question</button>
+                        </div>
+                        <div className="space-y-3">
+                          {questions.map((q, idx) => (
+                            <div key={q.id} className="dash-card">
+                              <div className="flex justify-between items-start mb-2">
+                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Question {idx + 1}</p>
+                                <div className="flex gap-1">
+                                  <button onClick={() => { setEditingQuestion(q); setQuestionForm(q); setShowQuizModal(true); }} className="p-1 hover:text-nilsBlue-600"><Pencil className="w-3.5 h-3.5" /></button>
+                                  <button onClick={() => deleteQuestion(q.id)} className="p-1 hover:text-red-500"><Trash2 className="w-3.5 h-3.5" /></button>
+                                </div>
+                              </div>
+                              <p className="font-medium text-gray-900 dark:text-white text-xs mb-3">{q.question}</p>
+                              <div className="grid grid-cols-2 gap-2">
+                                <div className="p-2 rounded bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800 text-[10px] text-emerald-700 dark:text-emerald-400"><span className="font-bold">Correct:</span> {q.correct_answer}</div>
+                                <div className="p-2 rounded bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900 text-[10px] text-red-600 dark:text-red-400"><span className="font-bold">Wrong:</span> {q.wrong_answer1}</div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
                     </>
                   ) : <div className="dash-card text-center py-20 text-gray-400 bg-white border-dashed border-2"><BookOpen className="w-12 h-12 mx-auto mb-3 opacity-20" /><p className="text-xs font-bold uppercase tracking-widest">Select a course to manage lessons</p></div>}
                 </div>
