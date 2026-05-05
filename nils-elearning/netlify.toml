@@ -1,4 +1,12 @@
+[build]
+  # React/Vite project eka build wena command eka
+  command = "npm run build"
+  
+  # Build unata passe production files save wena folder eka 
+  publish = "dist"
+
 [[redirects]]
+  # Netlify 404 Error eka fix karanna ona karana SPA routing eka
   from = "/*"
   to = "/index.html"
   status = 200
