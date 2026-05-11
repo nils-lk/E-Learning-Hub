@@ -23,7 +23,15 @@ const StudentDashboard = () => {
   });
 
   // Certificate Engine state (v31.0 Beautified)
-  const [certSettings, setCertSettings] = useState({});
+  const [certSettings, setCertSettings] = useState({
+    cert_org_1: 'NILS', cert_org_2: 'NILS',
+    cert_title_1: 'Assistant Director (Training)', cert_title_2: 'Director General',
+    cert_main_title: 'Certificate of Completion',
+    cert_certify_text: 'This is to certify that',
+    cert_success_text: 'has successfully completed the course in',
+    cert_tagline: 'offered by the National Institute of Labour Studies E-Learning Hub',
+    cert_title_size: '44', cert_name_size: '64', cert_nic_size: '18',
+  });
   const [isSyncingAssets, setIsSyncingAssets] = useState(false);
   const [isGeneratingCert, setIsGeneratingCert] = useState(false);
   const [showCertPreview, setShowCertPreview] = useState(false);
@@ -54,7 +62,7 @@ const StudentDashboard = () => {
       if (settings) {
         const sObj = {};
         settings.forEach(s => { if (s.key) sObj[s.key] = s.value; });
-        setCertSettings(sObj);
+        setCertSettings(prev => ({ ...prev, ...sObj }));
       }
       setLoading(false);
     };
@@ -65,9 +73,13 @@ const StudentDashboard = () => {
   const toBase64 = async (url) => {
     return new Promise((resolve) => {
       if (!url) { resolve(null); return; }
-      const idMatch = url.match(/[-\w]{25,50}/);
+      if (url.startsWith('data:')) { resolve(url); return; }
+      
+      // Robust Google Drive ID extraction
+      const idMatch = url.match(/(?:id=|\/d\/|folders\/|file\/d\/)([-\w]{25,50})/);
       if (!idMatch) { resolve(url); return; }
-      const id = idMatch[0];
+      const id = idMatch[1];
+      
       const tryLoad = (src, phaseName) => {
         const img = new Image();
         img.crossOrigin = 'Anonymous';
@@ -160,8 +172,7 @@ const StudentDashboard = () => {
       
       const canvas = await html2canvas(clone, { 
         scale: 2, useCORS: true, allowTaint: true, backgroundColor: '#ffffff',
-        width: 1123, height: 794, windowWidth: 1123, windowHeight: 794,
-        x: 0, y: 0, scrollX: 0, scrollY: 0, logging: false
+        width: 1123, height: 794, windowWidth: 1123, windowHeight: 794, logging: false
       });
       
       const imgData = canvas.toDataURL('image/png', 1.0);
@@ -197,9 +208,7 @@ const StudentDashboard = () => {
             <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight leading-none">Student Dashboard</h1>
             <p className="text-slate-500 text-sm mt-2 font-medium tracking-tight">Manage your institutional profile and certifications.</p>
           </div>
-          <button onClick={() => setShowProfile(true)} className="bg-white dark:bg-gray-900 border-2 border-slate-200 dark:border-white/5 px-6 py-3 rounded-2xl flex items-center gap-2 justify-center font-bold text-sm shadow-sm active:scale-95 transition-all dark:text-white">
-            <User className="w-4 h-4 text-nilsBlue-600" /> Personal Details
-          </button>
+
         </div>
 
         {loading ? <div className="py-20 flex justify-center"><LoadingSpinner size="lg" /></div> : enrollments.length === 0 ? (
@@ -319,7 +328,7 @@ const StudentDashboard = () => {
                     <div style={{ position: 'absolute', bottom: '75px', left: 0, width: '100%', padding: '0 100px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', boxSizing: 'border-box' }}>
                       <div style={{ textAlign: 'center', width: '340px', transform: `translate(${(parseInt(certSettings.cert_sig_1_x) || 0)}px, ${(parseInt(certSettings.cert_sig_1_y) || 0)}px)` }}>
                         <div style={{ transform: `translate(${(parseInt(certSettings.cert_sig_img_1_x) || 0)}px, ${(parseInt(certSettings.cert_sig_img_1_y) || 0)}px)` }}><img src={base64Assets.cert_sig_1} style={{ height: `${90 * ((parseInt(certSettings.cert_sig_1_size) || 100)/100)}px`, maxWidth: '350px', marginBottom: '10px' }} /></div>
-                        <div style={{ borderTop: '2px solid #000', paddingTop: '8px' }}><p style={{ margin: 0, fontSize: '18px', fontWeight: 'bold' }}>{certSettings.cert_title_1?.toUpperCase()}</p></div>
+                        <div style={{ borderTop: '2px solid #000', paddingTop: '8px' }}><p style={{ margin: 0, fontSize: '18px', fontWeight: 'bold' }}>{certSettings.cert_title_1?.toUpperCase()}</p><p style={{ margin: '2px 0 0 0', fontSize: '13px', color: '#555', fontWeight: 'normal' }}>{certSettings.cert_org_1}</p></div>
                       </div>
                       <div style={{ textAlign: 'center', transform: `translate(${(parseInt(certSettings.cert_seal_x) || 0)}px, ${(parseInt(certSettings.cert_seal_y) || 0)}px)`, minWidth: '170px' }}>
                         <div style={{ width: '100px', height: '100px', border: '1px solid rgba(30, 58, 138, 0.1)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px auto' }}><img src={base64Assets.cert_seal_url || "https://nils.gov.lk/wp-content/uploads/2021/05/cropped-NILS-Logo.png"} style={{ width: `${65 * ((parseInt(certSettings.cert_seal_size) || 100)/100)}px`, opacity: 0.8 }} /></div>
@@ -327,7 +336,7 @@ const StudentDashboard = () => {
                       </div>
                       <div style={{ textAlign: 'center', width: '340px', transform: `translate(${(parseInt(certSettings.cert_sig_2_x) || 0)}px, ${(parseInt(certSettings.cert_sig_2_y) || 0)}px)` }}>
                         <div style={{ transform: `translate(${(parseInt(certSettings.cert_sig_img_2_x) || 0)}px, ${(parseInt(certSettings.cert_sig_img_2_y) || 0)}px)` }}><img src={base64Assets.cert_sig_2} style={{ height: `${90 * ((parseInt(certSettings.cert_sig_2_size) || 100)/100)}px`, maxWidth: '350px', marginBottom: '10px' }} /></div>
-                        <div style={{ borderTop: '2px solid #000', paddingTop: '8px' }}><p style={{ margin: 0, fontSize: '18px', fontWeight: 'bold' }}>{certSettings.cert_title_2?.toUpperCase()}</p></div>
+                        <div style={{ borderTop: '2px solid #000', paddingTop: '8px' }}><p style={{ margin: 0, fontSize: '18px', fontWeight: 'bold' }}>{certSettings.cert_title_2?.toUpperCase()}</p><p style={{ margin: '2px 0 0 0', fontSize: '13px', color: '#555', fontWeight: 'normal' }}>{certSettings.cert_org_2}</p></div>
                       </div>
                     </div>
                   </div>

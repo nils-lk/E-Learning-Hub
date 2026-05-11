@@ -860,7 +860,7 @@ const SuperAdminDashboard = () => {
                               <div style={{ transform: `translate(${(parseInt(certSettings.cert_sig_img_1_x) || 0)}px, ${(parseInt(certSettings.cert_sig_img_1_y) || 0)}px)` }}>
                                 <img src={transformDriveUrl(certSettings.cert_sig_1)} className="sig-left" style={{ height: `${90 * ((parseInt(certSettings.cert_sig_1_size) || 100) / 100)}px`, maxWidth: '350px', marginBottom: '10px' }} alt="Signature 1" />
                               </div>
-                              <div style={{ borderTop: '2px solid #000', paddingTop: '8px' }}><p style={{ margin: 0, fontSize: '18px', fontWeight: 'bold' }}>{certSettings.cert_title_1?.toUpperCase()}</p></div>
+                               <div style={{ borderTop: '2px solid #000', paddingTop: '8px' }}><p style={{ margin: 0, fontSize: '18px', fontWeight: 'bold' }}>{certSettings.cert_title_1?.toUpperCase()}</p><p style={{ margin: '2px 0 0 0', fontSize: '13px', color: '#555', fontWeight: 'normal' }}>{certSettings.cert_org_1}</p></div>
                             </div>
                             <div style={{ textAlign: 'center', transform: `translate(${(parseInt(certSettings.cert_seal_x) || 0)}px, ${(parseInt(certSettings.cert_seal_y) || 0)}px)`, minWidth: '170px' }}>
                               <div style={{ width: '100px', height: '100px', border: '1px solid rgba(30, 58, 138, 0.1)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px auto' }}>
@@ -875,7 +875,7 @@ const SuperAdminDashboard = () => {
                               <div style={{ transform: `translate(${(parseInt(certSettings.cert_sig_img_2_x) || 0)}px, ${(parseInt(certSettings.cert_sig_img_2_y) || 0)}px)` }}>
                                 <img src={transformDriveUrl(certSettings.cert_sig_2)} className="sig-right" style={{ height: `${90 * ((parseInt(certSettings.cert_sig_2_size) || 100) / 100)}px`, maxWidth: '350px', marginBottom: '10px' }} alt="Signature 2" />
                               </div>
-                              <div style={{ borderTop: '2px solid #000', paddingTop: '8px' }}><p style={{ margin: 0, fontSize: '18px', fontWeight: 'bold' }}>{certSettings.cert_title_2?.toUpperCase()}</p></div>
+                               <div style={{ borderTop: '2px solid #000', paddingTop: '8px' }}><p style={{ margin: 0, fontSize: '18px', fontWeight: 'bold' }}>{certSettings.cert_title_2?.toUpperCase()}</p><p style={{ margin: '2px 0 0 0', fontSize: '13px', color: '#555', fontWeight: 'normal' }}>{certSettings.cert_org_2}</p></div>
                             </div>
                           </div>
                         </div>
@@ -927,7 +927,8 @@ const SuperAdminDashboard = () => {
                               <img src={transformDriveUrl(certSettings.cert_sig_1)} className="sig-left" style={{ height: `${90 * ((parseInt(certSettings.cert_sig_1_size) || 100) / 100)}px`, maxWidth: '350px', marginBottom: '10px' }} alt="Signature 1" />
                             </div>
                             <div style={{ borderTop: '2px solid #000', paddingTop: '8px' }}>
-                              <p style={{ margin: 0, fontSize: '18px', fontWeight: 'bold' }}>{certSettings.cert_title_1?.toUpperCase()}</p>
+                               <p style={{ margin: 0, fontSize: '18px', fontWeight: 'bold' }}>{certSettings.cert_title_1?.toUpperCase()}</p>
+                               <p style={{ margin: '2px 0 0 0', fontSize: '13px', color: '#555', fontWeight: 'normal' }}>{certSettings.cert_org_1}</p>
                             </div>
                           </div>
                           <div style={{ textAlign: 'center', transform: `translate(${(parseInt(certSettings.cert_seal_x) || 0)}px, ${(parseInt(certSettings.cert_seal_y) || 0)}px)`, minWidth: '170px' }}>
@@ -944,7 +945,8 @@ const SuperAdminDashboard = () => {
                               <img src={transformDriveUrl(certSettings.cert_sig_2)} className="sig-right" style={{ height: `${90 * ((parseInt(certSettings.cert_sig_2_size) || 100) / 100)}px`, maxWidth: '350px', marginBottom: '10px' }} alt="Signature 2" />
                             </div>
                             <div style={{ borderTop: '2px solid #000', paddingTop: '8px' }}>
-                              <p style={{ margin: 0, fontSize: '18px', fontWeight: 'bold' }}>{certSettings.cert_title_2?.toUpperCase()}</p>
+                               <p style={{ margin: 0, fontSize: '18px', fontWeight: 'bold' }}>{certSettings.cert_title_2?.toUpperCase()}</p>
+                               <p style={{ margin: '2px 0 0 0', fontSize: '13px', color: '#555', fontWeight: 'normal' }}>{certSettings.cert_org_2}</p>
                             </div>
                           </div>
                         </div>

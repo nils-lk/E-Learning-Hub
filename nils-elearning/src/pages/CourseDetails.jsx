@@ -29,7 +29,15 @@ const CourseDetails = () => {
   const [quizAttempt, setQuizAttempt] = useState(null);
 
   // v32.0 Engine state
-  const [certSettings, setCertSettings] = useState({});
+  const [certSettings, setCertSettings] = useState({
+    cert_org_1: 'NILS', cert_org_2: 'NILS',
+    cert_title_1: 'Assistant Director (Training)', cert_title_2: 'Director General',
+    cert_main_title: 'Certificate of Completion',
+    cert_certify_text: 'This is to certify that',
+    cert_success_text: 'has successfully completed the course in',
+    cert_tagline: 'offered by the National Institute of Labour Studies E-Learning Hub',
+    cert_title_size: '44', cert_name_size: '64', cert_nic_size: '18',
+  });
   const [isSyncingAssets, setIsSyncingAssets] = useState(false);
   const [isGeneratingCert, setIsGeneratingCert] = useState(false);
   const [showCertPreview, setShowCertPreview] = useState(false);
@@ -86,7 +94,7 @@ const CourseDetails = () => {
         if (settings) {
           const sObj = {};
           settings.forEach(s => sObj[s.key] = s.value);
-          setCertSettings(sObj);
+          setCertSettings(prev => ({ ...prev, ...sObj }));
         }
       }
       setLoading(false);
@@ -124,10 +132,11 @@ const CourseDetails = () => {
   const toBase64 = async (url) => {
     return new Promise((resolve) => {
       if (!url) { resolve(null); return; }
-      const idMatch = url.match(/[-\w]{25,50}/);
+      if (url.startsWith('data:')) { resolve(url); return; }
+      const idMatch = url.match(/(?:id=|\/d\/|folders\/|file\/d\/)([-\w]{25,50})/);
       if (!idMatch) { resolve(url); return; }
-      const gId = idMatch[0];
-      const tryLoad = (src, phase) => {
+      const id = idMatch[1];
+      const tryLoad = (src, phaseName) => {
         const img = new Image();
         img.crossOrigin = 'Anonymous';
         img.onload = () => {
@@ -138,13 +147,13 @@ const CourseDetails = () => {
           try { resolve(canvas.toDataURL('image/png')); } catch (e) { resolve(url); }
         };
         img.onerror = () => {
-          if (phase === 'LH3') tryLoad(`https://drive.google.com/uc?id=${gId}`, 'UC');
-          else if (phase === 'UC') tryLoad(`https://drive.google.com/thumbnail?id=${gId}&sz=w2500`, 'THUMB');
+          if (phaseName === 'LH3') tryLoad(`https://drive.google.com/uc?id=${id}`, 'UC');
+          else if (phaseName === 'UC') tryLoad(`https://drive.google.com/thumbnail?id=${id}&sz=w2500`, 'THUMB');
           else resolve(url);
         };
         img.src = src;
       };
-      tryLoad(`https://lh3.googleusercontent.com/d/${gId}`, 'LH3');
+      tryLoad(`https://lh3.googleusercontent.com/d/${id}`, 'LH3');
     });
   };
 
@@ -361,6 +370,7 @@ const CourseDetails = () => {
                 height: `${794 * previewScale}px`
               }}
             >
+            <div style={{ transform: `scale(${previewScale})`, transformOrigin: 'top left', width: '1123px', height: '794px', position: 'relative' }}>
               <div id="master-inst-replica-course" style={{
                 width: '1123px',
                 height: '794px',
@@ -370,9 +380,7 @@ const CourseDetails = () => {
                 left: 0,
                 color: '#000',
                 fontFamily: "'Times New Roman', serif",
-                overflow: 'hidden',
-                transform: `scale(${previewScale})`,
-                transformOrigin: 'top left'
+                overflow: 'hidden'
               }}>
                 <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap" rel="stylesheet" />
                 <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 0, transform: `translate(${(parseInt(certSettings.cert_bg_x) || 0)}px, ${(parseInt(certSettings.cert_bg_y) || 0)}px) scale(${(parseInt(certSettings.cert_bg_size) || 100) / 100})` }}>
@@ -397,7 +405,7 @@ const CourseDetails = () => {
                   <div style={{ position: 'absolute', bottom: '75px', left: 0, width: '100%', padding: '0 100px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', boxSizing: 'border-box' }}>
                     <div style={{ textAlign: 'center', width: '340px', transform: `translate(${(parseInt(certSettings.cert_sig_1_x) || 0)}px, ${(parseInt(certSettings.cert_sig_1_y) || 0)}px)` }}>
                       <div style={{ transform: `translate(${(parseInt(certSettings.cert_sig_img_1_x) || 0)}px, ${(parseInt(certSettings.cert_sig_img_1_y) || 0)}px)` }}><img src={base64Assets.cert_sig_1} style={{ height: `${90 * ((parseInt(certSettings.cert_sig_1_size) || 100) / 100)}px`, maxWidth: '350px', marginBottom: '10px' }} /></div>
-                      <div style={{ borderTop: '2px solid #000', paddingTop: '8px' }}><p style={{ margin: 0, fontSize: '18px', fontWeight: 'bold' }}>{certSettings.cert_title_1?.toUpperCase()}</p></div>
+                      <div style={{ borderTop: '2px solid #000', paddingTop: '8px' }}><p style={{ margin: 0, fontSize: '18px', fontWeight: 'bold' }}>{certSettings.cert_title_1?.toUpperCase()}</p><p style={{ margin: '2px 0 0 0', fontSize: '13px', color: '#555', fontWeight: 'normal' }}>{certSettings.cert_org_1}</p></div>
                     </div>
                     <div style={{ textAlign: 'center', transform: `translate(${(parseInt(certSettings.cert_seal_x) || 0)}px, ${(parseInt(certSettings.cert_seal_y) || 0)}px)`, minWidth: '170px' }}>
                       <div style={{ width: '100px', height: '100px', border: '1px solid rgba(30, 58, 138, 0.1)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px auto' }}><img src={base64Assets.cert_seal_url || "https://nils.gov.lk/wp-content/uploads/2021/05/cropped-NILS-Logo.png"} style={{ width: `${65 * ((parseInt(certSettings.cert_seal_size) || 100) / 100)}px`, opacity: 0.8 }} /></div>
@@ -405,11 +413,12 @@ const CourseDetails = () => {
                     </div>
                     <div style={{ textAlign: 'center', width: '340px', transform: `translate(${(parseInt(certSettings.cert_sig_2_x) || 0)}px, ${(parseInt(certSettings.cert_sig_2_y) || 0)}px)` }}>
                       <div style={{ transform: `translate(${(parseInt(certSettings.cert_sig_img_2_x) || 0)}px, ${(parseInt(certSettings.cert_sig_img_2_y) || 0)}px)` }}><img src={base64Assets.cert_sig_2} style={{ height: `${90 * ((parseInt(certSettings.cert_sig_2_size) || 100) / 100)}px`, maxWidth: '350px', marginBottom: '10px' }} /></div>
-                      <div style={{ borderTop: '2px solid #000', paddingTop: '8px' }}><p style={{ margin: 0, fontSize: '18px', fontWeight: 'bold' }}>{certSettings.cert_title_2?.toUpperCase()}</p></div>
+                      <div style={{ borderTop: '2px solid #000', paddingTop: '8px' }}><p style={{ margin: 0, fontSize: '18px', fontWeight: 'bold' }}>{certSettings.cert_title_2?.toUpperCase()}</p><p style={{ margin: '2px 0 0 0', fontSize: '13px', color: '#555', fontWeight: 'normal' }}>{certSettings.cert_org_2}</p></div>
                     </div>
                   </div>
                 </div>
               </div>
+            </div>
             </div>
           </div>
         </div>
