@@ -36,6 +36,9 @@ const CourseDetails = () => {
   const [activeCertData, setActiveCertData] = useState(null);
   const [base64Assets, setBase64Assets] = useState({});
 
+  // World-class dynamic scaling state
+  const [previewScale, setPreviewScale] = useState(1);
+
   useEffect(() => {
     const load = async () => {
       setLoading(true);
@@ -90,6 +93,33 @@ const CourseDetails = () => {
     };
     load();
   }, [id, user]);
+
+  // Dynamic Scale Effect for perfect Mobile/Desktop fit
+  useEffect(() => {
+    if (!showCertPreview) return;
+
+    const updateScale = () => {
+      // Calculate available space dynamically
+      const paddingX = window.innerWidth >= 768 ? 96 : 48; // Left/Right spacing
+      const paddingY = window.innerWidth >= 768 ? 200 : 220; // Top header + Bottom spacing
+
+      const availableWidth = window.innerWidth - paddingX;
+      const availableHeight = window.innerHeight - paddingY;
+
+      // Calculate scale factors for both dimensions
+      const scaleX = availableWidth / 1123;
+      const scaleY = availableHeight / 794;
+
+      // Pick the smallest scale so it perfectly fits on the screen without scrolling
+      const optimalScale = Math.min(1, scaleX, scaleY);
+
+      setPreviewScale(Math.max(0.15, optimalScale));
+    };
+
+    updateScale();
+    window.addEventListener('resize', updateScale);
+    return () => window.removeEventListener('resize', updateScale);
+  }, [showCertPreview]);
 
   const toBase64 = async (url) => {
     return new Promise((resolve) => {
@@ -164,7 +194,7 @@ const CourseDetails = () => {
     clone.style.transform = 'none'; clone.style.width = '1123px'; clone.style.height = '794px';
     try {
       await new Promise(res => setTimeout(res, 6000));
-      const canvas = await html2canvas(clone, { 
+      const canvas = await html2canvas(clone, {
         scale: 2, useCORS: true, allowTaint: true, backgroundColor: '#ffffff',
         width: 1123, height: 794, windowWidth: 1123, windowHeight: 794, logging: false
       });
@@ -217,7 +247,7 @@ const CourseDetails = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-5">
           {activeLesson ? (canWatch(activeLesson) ? <VideoPlayer videoUrl={activeLesson.video_url} title={activeLesson.title} /> : <div className="aspect-video bg-gray-900 rounded-2xl flex flex-col items-center justify-center gap-3 text-gray-400 border border-white/5 shadow-2xl"><Lock className="w-10 h-10 text-gray-700" /><p className="font-bold">Lesson Locked</p><p className="text-sm opacity-50">Enroll to unlock full course content.</p></div>) : <div className="aspect-video bg-gray-900 rounded-2xl flex items-center justify-center text-gray-500 border border-white/5">No lessons</div>}
-          
+
           {activeLesson && (
             <div className="bg-white dark:bg-gray-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-white/5">
               <div className="flex items-center justify-between">
@@ -300,47 +330,82 @@ const CourseDetails = () => {
 
       {showCertPreview && activeCertData && (
         <div className="fixed inset-0 z-[110] bg-slate-950/98 backdrop-blur-3xl flex flex-col items-center justify-center overflow-hidden">
-          <div className="w-full max-w-6xl flex justify-between items-center px-10 py-8">
-            <div><div className="flex items-center gap-4"><Shield className="w-10 h-10 text-emerald-400" /><h3 className="text-white font-black text-4xl uppercase tracking-tighter">Official Certification</h3></div><p className="text-white/30 text-[11px] font-black uppercase tracking-widest mt-2 ml-14">Institutional Master Design v32.0 Sync Enabled</p></div>
-            <div className="flex items-center gap-6"><button onClick={handleDownloadPDF} disabled={isGeneratingCert} className="px-14 py-5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-[2rem] font-black uppercase tracking-widest text-sm shadow-2xl flex items-center gap-4 transition-all active:scale-95 disabled:opacity-50">{isGeneratingCert ? <Loader2 className="w-5 h-5 animate-spin" /> : <Download className="w-5 h-5" />} {isGeneratingCert ? 'Exporting...' : 'Download Master PDF'}</button><button onClick={() => setShowCertPreview(false)} className="w-16 h-16 bg-white/5 hover:bg-white/10 text-white rounded-full flex items-center justify-center"><X className="w-8 h-8" /></button></div>
+
+          {/* Header section optimized for mobile readability */}
+          <div className="w-full max-w-6xl flex flex-col md:flex-row justify-between items-start md:items-center px-6 md:px-10 py-6 md:py-8 gap-4 md:gap-0 shrink-0 z-10">
+            <div className="w-full md:w-auto mt-6 md:mt-0">
+              <div className="flex items-center gap-3 md:gap-4">
+                <Shield className="w-8 h-8 md:w-10 md:h-10 text-emerald-400 shrink-0" />
+                <h3 className="text-white font-black text-2xl md:text-4xl uppercase tracking-tighter">Official Certification</h3>
+              </div>
+              <p className="text-white/30 text-[9px] md:text-[11px] font-black uppercase tracking-widest mt-2 ml-11 md:ml-14">Institutional Master Design v32.0 Sync Enabled</p>
+            </div>
+
+            <div className="flex w-full md:w-auto items-center gap-4 md:gap-6 mt-2 md:mt-0">
+              <button onClick={handleDownloadPDF} disabled={isGeneratingCert} className="flex-1 md:flex-none px-6 md:px-14 py-4 md:py-5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl md:rounded-[2rem] font-black uppercase tracking-widest text-xs md:text-sm shadow-2xl flex items-center justify-center gap-2 md:gap-4 transition-all active:scale-95 disabled:opacity-50">
+                {isGeneratingCert ? <Loader2 className="w-4 h-4 md:w-5 md:h-5 animate-spin" /> : <Download className="w-4 h-4 md:w-5 md:h-5" />}
+                {isGeneratingCert ? 'Exporting...' : 'Download Master PDF'}
+              </button>
+              <button onClick={() => setShowCertPreview(false)} className="absolute top-4 right-4 md:static w-12 h-12 md:w-16 md:h-16 bg-white/10 hover:bg-white/20 text-white rounded-full flex items-center justify-center transition-all z-20">
+                <X className="w-6 h-6 md:w-8 md:h-8" />
+              </button>
+            </div>
           </div>
-          <div className="flex-1 w-full flex items-center justify-center p-4 overflow-auto custom-scrollbar-smooth">
-            <div className="bg-slate-900/50 p-12 md:p-20 rounded-[5rem] shadow-2xl border-4 border-white/5 flex items-center justify-center relative min-h-fit">
-              <div className="relative" style={{ transform: 'scale(0.7)', transformOrigin: 'center center', width: '1123px', height: '794px' }}>
-                <div id="master-inst-replica-course" style={{ width: '1123px', height: '794px', background: '#fff', position: 'relative', color: '#000', fontFamily: "'Times New Roman', serif", overflow: 'hidden', boxShadow: '0 50px 100px -20px rgba(0,0,0,0.5)' }}>
-                  <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap" rel="stylesheet" />
-                  <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 0, transform: `translate(${(parseInt(certSettings.cert_bg_x) || 0)}px, ${(parseInt(certSettings.cert_bg_y) || 0)}px) scale(${(parseInt(certSettings.cert_bg_size) || 100)/100})` }}>
-                    <img src={base64Assets.cert_bg_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+
+          {/* Dynamic Scaling Certificate Container */}
+          <div className="flex-1 w-full flex items-center justify-center p-4 overflow-hidden">
+            <div
+              className="relative shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/20 rounded-md transition-all duration-300 ease-out"
+              style={{
+                width: `${1123 * previewScale}px`,
+                height: `${794 * previewScale}px`
+              }}
+            >
+              <div id="master-inst-replica-course" style={{
+                width: '1123px',
+                height: '794px',
+                background: '#fff',
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                color: '#000',
+                fontFamily: "'Times New Roman', serif",
+                overflow: 'hidden',
+                transform: `scale(${previewScale})`,
+                transformOrigin: 'top left'
+              }}>
+                <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap" rel="stylesheet" />
+                <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 0, transform: `translate(${(parseInt(certSettings.cert_bg_x) || 0)}px, ${(parseInt(certSettings.cert_bg_y) || 0)}px) scale(${(parseInt(certSettings.cert_bg_size) || 100) / 100})` }}>
+                  <img src={base64Assets.cert_bg_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                </div>
+                <div style={{ position: 'absolute', top: '25px', left: '25px', right: '25px', bottom: '25px', border: '2px solid #1e3a8a', padding: '5px', zIndex: 1 }}><div style={{ border: '8px double #1e3a8a', height: '100%' }}></div></div>
+                <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 10 }}>
+                  <div style={{ position: 'absolute', top: '70px', left: 0, width: '100%', padding: '0 100px', display: 'flex', justifyContent: 'space-between', boxSizing: 'border-box' }}>
+                    <div style={{ transform: `translate(${(parseInt(certSettings.cert_logo_1_x) || 0)}px, ${(parseInt(certSettings.cert_logo_1_y) || 0)}px)` }}><img src={base64Assets.cert_logo_left} style={{ height: `${100 * ((parseInt(certSettings.cert_logo_1_size) || 100) / 100)}px`, maxWidth: '350px', objectFit: 'contain' }} /></div>
+                    <div style={{ transform: `translate(${(parseInt(certSettings.cert_logo_2_x) || 0)}px, ${(parseInt(certSettings.cert_logo_2_y) || 0)}px)` }}><img src={base64Assets.cert_logo_right} style={{ height: `${100 * ((parseInt(certSettings.cert_logo_2_size) || 100) / 100)}px`, maxWidth: '350px', objectFit: 'contain' }} /></div>
                   </div>
-                  <div style={{ position: 'absolute', top: '25px', left: '25px', right: '25px', bottom: '25px', border: '2px solid #1e3a8a', padding: '5px', zIndex: 1 }}><div style={{ border: '8px double #1e3a8a', height: '100%' }}></div></div>
-                  <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 10 }}>
-                    <div style={{ position: 'absolute', top: '70px', left: 0, width: '100%', padding: '0 100px', display: 'flex', justifyContent: 'space-between', boxSizing: 'border-box' }}>
-                      <div style={{ transform: `translate(${(parseInt(certSettings.cert_logo_1_x) || 0)}px, ${(parseInt(certSettings.cert_logo_1_y) || 0)}px)` }}><img src={base64Assets.cert_logo_left} style={{ height: `${100 * ((parseInt(certSettings.cert_logo_1_size) || 100)/100)}px`, maxWidth: '350px', objectFit: 'contain' }} /></div>
-                      <div style={{ transform: `translate(${(parseInt(certSettings.cert_logo_2_x) || 0)}px, ${(parseInt(certSettings.cert_logo_2_y) || 0)}px)` }}><img src={base64Assets.cert_logo_right} style={{ height: `${100 * ((parseInt(certSettings.cert_logo_2_size) || 100)/100)}px`, maxWidth: '350px', objectFit: 'contain' }} /></div>
+                  <div style={{ position: 'absolute', top: `${270 + (parseInt(certSettings.cert_content_y) || 0)}px`, left: `${(parseInt(certSettings.cert_content_x) || 0)}px`, width: '100%', textAlign: 'center', padding: '0 50px', boxSizing: 'border-box' }}>
+                    <h2 style={{ fontSize: `${parseInt(certSettings.cert_title_size) || 44}px`, color: '#854d0e', margin: '0', fontStyle: 'italic', fontWeight: 'bold' }}>{certSettings.cert_main_title}</h2>
+                    <p style={{ fontSize: '20px', margin: '15px 0', color: '#333' }}>{certSettings.cert_certify_text}</p>
+                    <h3 style={{ fontSize: `${parseInt(certSettings.cert_name_size) || 64}px`, margin: '10px 0', color: '#1e3a8a', fontWeight: 'bold', fontFamily: "'Dancing Script', cursive" }}>{activeCertData.studentName}</h3>
+                    <div style={{ width: '350px', height: '2px', background: '#1e3a8a', opacity: 0.3, margin: '10px auto' }}></div>
+                    <div style={{ transform: `translateY(${(parseInt(certSettings.cert_nic_y) || 0)}px)` }}><p style={{ fontSize: `${parseInt(certSettings.cert_nic_size) || 18}px`, margin: '0', color: '#444' }}>National Identity Card No: <strong>{activeCertData.studentNic}</strong></p></div>
+                    <p style={{ fontSize: '20px', margin: '20px 0', color: '#333' }}>{certSettings.cert_success_text}</p>
+                    <h4 style={{ fontSize: '42px', color: '#1e3a8a', margin: '0', fontWeight: 'bold', textTransform: 'uppercase' }}>{activeCertData.courseTitle}</h4>
+                    <p style={{ fontSize: '16px', color: '#555', fontStyle: 'italic', maxWidth: '850px', margin: '40px auto 0 auto' }}>{certSettings.cert_tagline}</p>
+                  </div>
+                  <div style={{ position: 'absolute', bottom: '75px', left: 0, width: '100%', padding: '0 100px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', boxSizing: 'border-box' }}>
+                    <div style={{ textAlign: 'center', width: '340px', transform: `translate(${(parseInt(certSettings.cert_sig_1_x) || 0)}px, ${(parseInt(certSettings.cert_sig_1_y) || 0)}px)` }}>
+                      <div style={{ transform: `translate(${(parseInt(certSettings.cert_sig_img_1_x) || 0)}px, ${(parseInt(certSettings.cert_sig_img_1_y) || 0)}px)` }}><img src={base64Assets.cert_sig_1} style={{ height: `${90 * ((parseInt(certSettings.cert_sig_1_size) || 100) / 100)}px`, maxWidth: '350px', marginBottom: '10px' }} /></div>
+                      <div style={{ borderTop: '2px solid #000', paddingTop: '8px' }}><p style={{ margin: 0, fontSize: '18px', fontWeight: 'bold' }}>{certSettings.cert_title_1?.toUpperCase()}</p></div>
                     </div>
-                    <div style={{ position: 'absolute', top: `${270 + (parseInt(certSettings.cert_content_y) || 0)}px`, left: `${(parseInt(certSettings.cert_content_x) || 0)}px`, width: '100%', textAlign: 'center', padding: '0 50px', boxSizing: 'border-box' }}>
-                      <h2 style={{ fontSize: `${parseInt(certSettings.cert_title_size) || 44}px`, color: '#854d0e', margin: '0', fontStyle: 'italic', fontWeight: 'bold' }}>{certSettings.cert_main_title}</h2>
-                      <p style={{ fontSize: '20px', margin: '15px 0', color: '#333' }}>{certSettings.cert_certify_text}</p>
-                      <h3 style={{ fontSize: `${parseInt(certSettings.cert_name_size) || 64}px`, margin: '10px 0', color: '#1e3a8a', fontWeight: 'bold', fontFamily: "'Dancing Script', cursive" }}>{activeCertData.studentName}</h3>
-                      <div style={{ width: '350px', height: '2px', background: '#1e3a8a', opacity: 0.3, margin: '10px auto' }}></div>
-                      <div style={{ transform: `translateY(${(parseInt(certSettings.cert_nic_y) || 0)}px)` }}><p style={{ fontSize: `${parseInt(certSettings.cert_nic_size) || 18}px`, margin: '0', color: '#444' }}>National Identity Card No: <strong>{activeCertData.studentNic}</strong></p></div>
-                      <p style={{ fontSize: '20px', margin: '20px 0', color: '#333' }}>{certSettings.cert_success_text}</p>
-                      <h4 style={{ fontSize: '42px', color: '#1e3a8a', margin: '0', fontWeight: 'bold', textTransform: 'uppercase' }}>{activeCertData.courseTitle}</h4>
-                      <p style={{ fontSize: '16px', color: '#555', fontStyle: 'italic', maxWidth: '850px', margin: '40px auto 0 auto' }}>{certSettings.cert_tagline}</p>
+                    <div style={{ textAlign: 'center', transform: `translate(${(parseInt(certSettings.cert_seal_x) || 0)}px, ${(parseInt(certSettings.cert_seal_y) || 0)}px)`, minWidth: '170px' }}>
+                      <div style={{ width: '100px', height: '100px', border: '1px solid rgba(30, 58, 138, 0.1)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px auto' }}><img src={base64Assets.cert_seal_url || "https://nils.gov.lk/wp-content/uploads/2021/05/cropped-NILS-Logo.png"} style={{ width: `${65 * ((parseInt(certSettings.cert_seal_size) || 100) / 100)}px`, opacity: 0.8 }} /></div>
+                      <div style={{ color: '#1e3a8a', lineHeight: '1.2', fontWeight: 'bold' }}><p style={{ margin: 0, fontSize: '12px', letterSpacing: '1px', fontWeight: '900' }}>VERIFIED DOCUMENT</p><p style={{ margin: 0, fontSize: '10px', opacity: 0.8 }}>ID: {activeCertData.certId}</p><p style={{ margin: 0, fontSize: '10px', opacity: 0.8 }}>Date: {activeCertData.certDate}</p></div>
                     </div>
-                    <div style={{ position: 'absolute', bottom: '75px', left: 0, width: '100%', padding: '0 100px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', boxSizing: 'border-box' }}>
-                      <div style={{ textAlign: 'center', width: '340px', transform: `translate(${(parseInt(certSettings.cert_sig_1_x) || 0)}px, ${(parseInt(certSettings.cert_sig_1_y) || 0)}px)` }}>
-                        <div style={{ transform: `translate(${(parseInt(certSettings.cert_sig_img_1_x) || 0)}px, ${(parseInt(certSettings.cert_sig_img_1_y) || 0)}px)` }}><img src={base64Assets.cert_sig_1} style={{ height: `${90 * ((parseInt(certSettings.cert_sig_1_size) || 100)/100)}px`, maxWidth: '350px', marginBottom: '10px' }} /></div>
-                        <div style={{ borderTop: '2px solid #000', paddingTop: '8px' }}><p style={{ margin: 0, fontSize: '18px', fontWeight: 'bold' }}>{certSettings.cert_title_1?.toUpperCase()}</p></div>
-                      </div>
-                      <div style={{ textAlign: 'center', transform: `translate(${(parseInt(certSettings.cert_seal_x) || 0)}px, ${(parseInt(certSettings.cert_seal_y) || 0)}px)`, minWidth: '170px' }}>
-                        <div style={{ width: '100px', height: '100px', border: '1px solid rgba(30, 58, 138, 0.1)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px auto' }}><img src={base64Assets.cert_seal_url || "https://nils.gov.lk/wp-content/uploads/2021/05/cropped-NILS-Logo.png"} style={{ width: `${65 * ((parseInt(certSettings.cert_seal_size) || 100)/100)}px`, opacity: 0.8 }} /></div>
-                        <div style={{ color: '#1e3a8a', lineHeight: '1.2', fontWeight: 'bold' }}><p style={{ margin: 0, fontSize: '12px', letterSpacing: '1px', fontWeight: '900' }}>VERIFIED DOCUMENT</p><p style={{ margin: 0, fontSize: '10px', opacity: 0.8 }}>ID: {activeCertData.certId}</p><p style={{ margin: 0, fontSize: '10px', opacity: 0.8 }}>Date: {activeCertData.certDate}</p></div>
-                      </div>
-                      <div style={{ textAlign: 'center', width: '340px', transform: `translate(${(parseInt(certSettings.cert_sig_2_x) || 0)}px, ${(parseInt(certSettings.cert_sig_2_y) || 0)}px)` }}>
-                        <div style={{ transform: `translate(${(parseInt(certSettings.cert_sig_img_2_x) || 0)}px, ${(parseInt(certSettings.cert_sig_img_2_y) || 0)}px)` }}><img src={base64Assets.cert_sig_2} style={{ height: `${90 * ((parseInt(certSettings.cert_sig_2_size) || 100)/100)}px`, maxWidth: '350px', marginBottom: '10px' }} /></div>
-                        <div style={{ borderTop: '2px solid #000', paddingTop: '8px' }}><p style={{ margin: 0, fontSize: '18px', fontWeight: 'bold' }}>{certSettings.cert_title_2?.toUpperCase()}</p></div>
-                      </div>
+                    <div style={{ textAlign: 'center', width: '340px', transform: `translate(${(parseInt(certSettings.cert_sig_2_x) || 0)}px, ${(parseInt(certSettings.cert_sig_2_y) || 0)}px)` }}>
+                      <div style={{ transform: `translate(${(parseInt(certSettings.cert_sig_img_2_x) || 0)}px, ${(parseInt(certSettings.cert_sig_img_2_y) || 0)}px)` }}><img src={base64Assets.cert_sig_2} style={{ height: `${90 * ((parseInt(certSettings.cert_sig_2_size) || 100) / 100)}px`, maxWidth: '350px', marginBottom: '10px' }} /></div>
+                      <div style={{ borderTop: '2px solid #000', paddingTop: '8px' }}><p style={{ margin: 0, fontSize: '18px', fontWeight: 'bold' }}>{certSettings.cert_title_2?.toUpperCase()}</p></div>
                     </div>
                   </div>
                 </div>

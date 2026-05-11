@@ -59,7 +59,7 @@ const Footer = () => {
           <p className="flex items-center gap-1">
             Developed with <Heart className="w-3 h-3 text-red-400 fill-red-400" /> by&nbsp;
             <a href="https://lakshan.vercel.app/" target="_blank" rel="noopener noreferrer"
-              className="text-nilsGold hover:underline">V.P.R.L. Vidanapathirana</a>
+              className="text-nilsGold hover:underline">V.P.R. Lakshan Vidanapathirana</a>
           </p>
         </div>
       </div>
