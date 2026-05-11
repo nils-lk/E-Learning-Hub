@@ -33,36 +33,69 @@ const Login = () => {
     try {
       if (isForgotPass) {
         if (!email) throw new Error('Please enter your email.');
-        const { error } = await supabase.auth.resetPasswordForEmail(email);
-        if (error) throw error;
-        setSuccess('OTP code sent! Please check your email.');
-        setOtpType('recovery');
-        setShowOtp(true);
+        const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+          redirectTo: `${window.location.origin}/update-password`
+        });
+        if (error) {
+          // If SMTP is broken, give a clear actionable message
+          const isSmtpError = error.message?.toLowerCase().includes('sending') || 
+                              error.message?.toLowerCase().includes('smtp') ||
+                              error.message?.toLowerCase().includes('email');
+          if (isSmtpError) {
+            setError('Email sending failed. Your SMTP server is not configured correctly in the Supabase Dashboard. Contact the system administrator.');
+          } else {
+            throw error;
+          }
+        } else {
+          setSuccess('A verification code has been sent to your email.');
+          setOtpType('recovery');
+          setShowOtp(true);
+        }
       } else if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
         if (error) throw error;
         navigate('/dashboard');
       } else {
+        // Signup flow
         if (password.length < 6) throw new Error('Password must be at least 6 characters.');
+        
         const { data, error } = await supabase.auth.signUp({
-          email,
+          email: email.trim(),
           password,
           options: { data: { full_name: fullName } }
         });
-        if (error) throw error;
 
-        // Create profile record immediately
-        if (data.user) {
+        // Check if it's only a email-sending error (user was still created in DB)
+        const isEmailSendError = error?.message?.toLowerCase().includes('sending') ||
+                                  error?.message?.toLowerCase().includes('confirmation') ||
+                                  error?.message?.toLowerCase().includes('smtp');
+
+        if (error && !isEmailSendError) {
+          // Real error (duplicate email, invalid password, etc.)
+          throw error;
+        }
+
+        // User was created (even if email failed) — save profile
+        const userId = data?.user?.id;
+        if (userId) {
           await supabase.from('profiles').upsert({
-            id: data.user.id,
-            email: data.user.email,
+            id: userId,
+            email: email.trim(),
             full_name: fullName,
             role: 'user',
           });
         }
-        setSuccess('Account created! An OTP code has been sent to your email.');
-        setOtpType('signup');
-        setShowOtp(true);
+
+        if (data?.session) {
+          // Email confirmation is OFF in Supabase — user is logged in directly
+          navigate('/dashboard');
+        } else {
+          // Email confirmation is ON — Supabase automatically sent the signup OTP.
+          // Show verification screen.
+          setSuccess('Account created! A verification code has been sent to your email.');
+          setOtpType('signup');
+          setShowOtp(true);
+        }
       }
     } catch (err) {
       setError(err.message);
@@ -70,6 +103,9 @@ const Login = () => {
       setLoading(false);
     }
   };
+
+
+
 
   const handleVerifyOtp = async (e) => {
     e.preventDefault();
@@ -81,16 +117,20 @@ const Login = () => {
     setLoading(true);
     
     try {
-      const { error } = await supabase.auth.verifyOtp({ email: email.trim(), token, type: otpType });
+      // 'email' is the correct type for signInWithOtp verification
+      const { data, error } = await supabase.auth.verifyOtp({
+        email: email.trim(),
+        token,
+        type: otpType // 'email' for signup/login OTP, 'recovery' for password reset
+      });
       if (error) throw error;
-      
       if (otpType === 'recovery') {
         navigate('/update-password');
       } else {
         navigate('/dashboard');
       }
     } catch (err) {
-      setError(err.message);
+      setError('Invalid or expired OTP. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -137,7 +177,7 @@ const Login = () => {
             {showOtp ? 'Verify your email' : isForgotPass ? 'Reset Password' : isLogin ? 'Welcome back' : 'Create account'}
           </h1>
           <p className="text-gray-500 dark:text-gray-400 mb-8 text-sm">
-            {showOtp ? `We sent a 6-digit code to ${email}` : isForgotPass ? 'Enter your email to receive a reset link.' : isLogin ? 'Sign in to access your courses.' : 'Join NILS E-Learning Hub today — it\'s free.'}
+            {showOtp ? `We sent a code to ${email}` : isForgotPass ? 'Enter your email to receive a password reset code.' : isLogin ? 'Sign in to access your courses.' : 'Join NILS E-Learning Hub today — it\'s free.'}
           </p>
 
           {/* Error / success alerts */}
@@ -158,25 +198,27 @@ const Login = () => {
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 text-center">
                   Enter Verification Code (6-8 digits)
                 </label>
-                <div className="flex justify-center gap-1.5 sm:gap-2">
+                <div className="flex justify-center gap-1 sm:gap-2">
                   {otpArray.map((digit, idx) => (
                     <input
                       key={idx}
                       ref={el => otpInputRefs.current[idx] = el}
                       type="text"
+                      inputMode="numeric"
                       maxLength={8}
                       value={digit}
                       onChange={e => {
-                        const val = e.target.value;
+                        const val = e.target.value.replace(/\D/g, ''); // digits only
                         if (val.length > 1) {
-                          const pasted = val.replace(/\s/g, '').slice(0, 8).split('');
-                          const newOtp = [...otpArray];
-                          pasted.forEach((char, i) => { if (idx + i < 8) newOtp[idx + i] = char; });
+                          // Handle paste of full code
+                          const pasted = val.slice(0, 8).split('');
+                          const newOtp = ['', '', '', '', '', '', '', ''];
+                          pasted.forEach((char, i) => { if (i < 8) newOtp[i] = char; });
                           setOtpArray(newOtp);
-                          otpInputRefs.current[Math.min(idx + pasted.length, 7)]?.focus();
+                          otpInputRefs.current[Math.min(pasted.length, 7)]?.focus();
                         } else {
                           const newOtp = [...otpArray];
-                          newOtp[idx] = val.trim();
+                          newOtp[idx] = val;
                           setOtpArray(newOtp);
                           if (val && idx < 7) otpInputRefs.current[idx + 1]?.focus();
                         }
@@ -186,7 +228,7 @@ const Login = () => {
                           otpInputRefs.current[idx - 1]?.focus();
                         }
                       }}
-                      className="w-9 h-11 sm:w-10 sm:h-12 text-center text-lg font-bold bg-white dark:bg-gray-900 border-2 border-gray-200 dark:border-gray-700 rounded-lg focus:border-nilsBlue-500 focus:ring-4 focus:ring-nilsBlue-500/20 transition-all text-gray-900 dark:text-white"
+                      className="w-10 h-12 sm:w-11 sm:h-13 text-center text-lg sm:text-xl font-bold bg-white dark:bg-gray-900 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-nilsBlue-500 focus:ring-4 focus:ring-nilsBlue-500/20 transition-all text-gray-900 dark:text-white"
                     />
                   ))}
                 </div>
@@ -196,7 +238,7 @@ const Login = () => {
                 disabled={loading || otpArray.join('').trim().length < 6}
                 className="btn-primary w-full justify-center py-3 text-base mt-2"
               >
-                {loading ? <span className="flex items-center gap-2"><span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" /> Verifying...</span> : (otpType === 'recovery' ? 'Verify OTP & Reset Password' : 'Verify OTP & Login')}
+                {loading ? <span className="flex items-center gap-2"><span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" /> Verifying...</span> : 'Verify OTP & Login'}
               </button>
               <button
                 type="button"

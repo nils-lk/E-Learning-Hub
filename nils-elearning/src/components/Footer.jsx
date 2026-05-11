@@ -48,7 +48,7 @@ const Footer = () => {
               <li>National Institute of Labour Studies</li>
               <li>Sri Lanka</li>
               <li className="pt-2">
-                <a href="mailto:info@nils.gov.lk" className="hover:text-nilsGold transition-colors">info@nils.gov.lk</a>
+                <a href="mailto:info@nils.lk" className="hover:text-nilsGold transition-colors">info@nils.lk</a>
               </li>
             </ul>
           </div>

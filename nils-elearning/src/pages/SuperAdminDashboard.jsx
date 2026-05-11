@@ -7,7 +7,7 @@ import {
   Shield, Users, Search, RefreshCw, BookOpen,
   X, Save, Clock, CheckCircle, XCircle, Eye, ExternalLink, TrendingUp, Edit3,
   FileText, Download, BarChart2, Award, Type, Image as ImageIcon, Settings2, Maximize2, CheckSquare, AlignCenter,
-  Plus, Pencil, Trash2, Video, GripVertical, HelpCircle
+  Plus, Pencil, Trash2, Video, GripVertical, HelpCircle, Mail, Key, Server, AtSign
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -20,7 +20,7 @@ const roleColors = {
   user: 'bg-gray-100 text-gray-700',
 };
 
-const TABS = ['User Management', 'Manage Courses', 'Course Approvals', 'Pending Slips', 'All Enrollments', 'Reports', 'Server Settings', 'Certificates'];
+const TABS = ['User Management', 'Manage Courses', 'Course Approvals', 'Pending Slips', 'All Enrollments', 'Reports', 'Server Settings', 'Certificates', 'Email Config'];
 
 const emptyForm = { title: '', description: '', is_paid: false, price: '', thumbnail_url: '', issues_certificate: false };
 const emptyLesson = { title: '', description: '', video_url: '', lesson_order: 1, is_free_preview: false };
@@ -61,6 +61,10 @@ const SuperAdminDashboard = () => {
   const [deletingUser, setDeletingUser] = useState(null);
   const [deletePin, setDeletePin] = useState('');
   const [courseSearch, setCourseSearch] = useState('');
+  const [emailSettings, setEmailSettings] = useState({
+    smtp_host: '', smtp_port: '587', smtp_user: '', smtp_pass: '', smtp_from: '', otp_enabled: 'false'
+  });
+  const [savingEmail, setSavingEmail] = useState(false);
 
   const [certSettings, setCertSettings] = useState({
     cert_org_name: 'National Institute of Labour Studies',
@@ -115,6 +119,14 @@ const SuperAdminDashboard = () => {
       if (settings) {
         const sObj = {}; settings.forEach(s => { if (s.key) sObj[s.key] = s.value; });
         setCertSettings(prev => ({ ...prev, ...sObj }));
+        setEmailSettings(prev => ({
+          smtp_host: sObj.smtp_host || prev.smtp_host,
+          smtp_port: sObj.smtp_port || prev.smtp_port,
+          smtp_user: sObj.smtp_user || prev.smtp_user,
+          smtp_pass: sObj.smtp_pass || prev.smtp_pass,
+          smtp_from: sObj.smtp_from || prev.smtp_from,
+          otp_enabled: sObj.otp_enabled || prev.otp_enabled,
+        }));
       }
     } catch (err) { console.error(err); } finally { setLoading(false); }
   };
@@ -265,10 +277,21 @@ const SuperAdminDashboard = () => {
   const handleDeleteUser = async () => {
     if (deletePin !== '456789') { alert('Incorrect PIN!'); return; }
     setProcessing(p => ({ ...p, [deletingUser.id]: true }));
-    const { error } = await supabase.from('profiles').delete().eq('id', deletingUser.id);
-    setProcessing(p => ({ ...p, [deletingUser.id]: false }));
-    if (error) { alert('Error: ' + error.message); }
-    else { setProfiles(prev => prev.filter(p => p.id !== deletingUser.id)); setDeletingUser(null); setDeletePin(''); alert('User removed!'); }
+    try {
+      // Delete all enrollments for this user first
+      await supabase.from('enrollments').delete().eq('user_id', deletingUser.id);
+      // Delete the profile record
+      const { error } = await supabase.from('profiles').delete().eq('id', deletingUser.id);
+      if (error) throw error;
+      setProfiles(prev => prev.filter(p => p.id !== deletingUser.id));
+      setDeletingUser(null);
+      setDeletePin('');
+      alert('User and all their enrollments have been removed successfully.');
+    } catch (e) {
+      alert('Error removing user: ' + e.message);
+    } finally {
+      setProcessing(p => ({ ...p, [deletingUser.id]: false }));
+    }
   };
 
   const downloadEnrollmentReport = () => {
@@ -928,6 +951,87 @@ const SuperAdminDashboard = () => {
                       </div>
                     </div>
                   </div>
+                </div>
+              </div>
+            )}
+
+            {tab === 8 && (
+              <div className="max-w-2xl mx-auto space-y-6">
+                <div className="dash-card space-y-5">
+                  <div className="flex items-center gap-3 pb-4 border-b border-gray-100 dark:border-gray-700">
+                    <div className="w-10 h-10 bg-nilsBlue-50 dark:bg-nilsBlue-900/30 rounded-xl flex items-center justify-center"><Mail className="w-5 h-5 text-nilsBlue-600" /></div>
+                    <div>
+                      <h3 className="font-bold text-gray-900 dark:text-white">SMTP Email Configuration</h3>
+                      <p className="text-xs text-gray-500">Settings used for sending OTP verification emails to students.</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="sm:col-span-2">
+                      <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5">SMTP Host</label>
+                      <div className="relative"><Server className="absolute left-3 top-3 w-4 h-4 text-gray-400" /><input value={emailSettings.smtp_host} onChange={e => setEmailSettings(p => ({...p, smtp_host: e.target.value}))} placeholder="smtp.gmail.com" className="form-input pl-9 text-sm" /></div>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5">SMTP Port</label>
+                      <input value={emailSettings.smtp_port} onChange={e => setEmailSettings(p => ({...p, smtp_port: e.target.value}))} placeholder="587" className="form-input text-sm" />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5">From Address</label>
+                      <div className="relative"><AtSign className="absolute left-3 top-3 w-4 h-4 text-gray-400" /><input value={emailSettings.smtp_from} onChange={e => setEmailSettings(p => ({...p, smtp_from: e.target.value}))} placeholder="noreply@nils.gov.lk" className="form-input pl-9 text-sm" /></div>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5">SMTP Username</label>
+                      <input value={emailSettings.smtp_user} onChange={e => setEmailSettings(p => ({...p, smtp_user: e.target.value}))} placeholder="your@email.com" className="form-input text-sm" />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5">SMTP Password / App Password</label>
+                      <div className="relative"><Key className="absolute left-3 top-3 w-4 h-4 text-gray-400" /><input type="password" value={emailSettings.smtp_pass} onChange={e => setEmailSettings(p => ({...p, smtp_pass: e.target.value}))} placeholder="••••••••••••" className="form-input pl-9 text-sm" /></div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-100 dark:border-gray-700">
+                    <div>
+                      <p className="font-bold text-sm text-gray-800 dark:text-white">Enable OTP Verification</p>
+                      <p className="text-xs text-gray-500 mt-0.5">Send a one-time password via email when students log in.</p>
+                    </div>
+                    <button
+                      onClick={() => setEmailSettings(p => ({...p, otp_enabled: p.otp_enabled === 'true' ? 'false' : 'true'}))}
+                      className={`relative w-12 h-6 rounded-full transition-all duration-300 ${emailSettings.otp_enabled === 'true' ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-600'}`}
+                    >
+                      <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-300 ${emailSettings.otp_enabled === 'true' ? 'translate-x-6' : 'translate-x-0'}`} />
+                    </button>
+                  </div>
+
+                  <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 text-xs text-red-700 dark:text-red-400 space-y-2">
+                    <p><strong>⚠️ Important — Why OTP emails are failing:</strong></p>
+                    <p>Saving settings here does NOT automatically configure Supabase to send emails. Supabase Auth has its own separate SMTP configuration that must be set in the <strong>Supabase Dashboard</strong>.</p>
+                    <p className="font-bold">To fix "Error sending email":</p>
+                    <ol className="list-decimal ml-4 space-y-1">
+                      <li>Go to <strong>supabase.com/dashboard</strong> → your project</li>
+                      <li>Click <strong>Project Settings → Authentication</strong></li>
+                      <li>Scroll to <strong>SMTP Settings</strong> → Enable Custom SMTP</li>
+                      <li>Enter the same SMTP credentials you saved here</li>
+                      <li>For Gmail: use <code>smtp.gmail.com</code>, port <code>587</code>, and a Gmail App Password</li>
+                      <li>For <code>info@nils.lk</code>: use your domain email provider's SMTP server (not smtp.gmail.com)</li>
+                    </ol>
+                  </div>
+
+                  <button
+                    onClick={async () => {
+                      setSavingEmail(true);
+                      try {
+                        const entries = Object.entries(emailSettings);
+                        for (const [key, value] of entries) {
+                          await supabase.from('system_settings').upsert({ key, value }, { onConflict: 'key' });
+                        }
+                        alert('Email settings saved successfully!');
+                      } catch (e) { alert('Error: ' + e.message); } finally { setSavingEmail(false); }
+                    }}
+                    disabled={savingEmail}
+                    className="btn-primary w-full justify-center py-3"
+                  >
+                    <Save className="w-4 h-4 mr-2" />{savingEmail ? 'Saving...' : 'Save Email Settings'}
+                  </button>
                 </div>
               </div>
             )}
