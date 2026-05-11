@@ -37,6 +37,7 @@ const StudentDashboard = () => {
   const [showCertPreview, setShowCertPreview] = useState(false);
   const [activeCertData, setActiveCertData] = useState(null);
   const [base64Assets, setBase64Assets] = useState({});
+  const [previewScale, setPreviewScale] = useState(1);
 
   useEffect(() => {
     if (profile) {
@@ -68,6 +69,33 @@ const StudentDashboard = () => {
     };
     fetch();
   }, [user.id]);
+
+  // Dynamic Scale Effect for perfect Mobile/Desktop fit
+  useEffect(() => {
+    if (!showCertPreview) return;
+
+    const updateScale = () => {
+      // Calculate available space dynamically
+      const paddingX = window.innerWidth >= 768 ? 96 : 48; // Left/Right spacing
+      const paddingY = window.innerWidth >= 768 ? 200 : 220; // Top header + Bottom spacing
+
+      const availableWidth = window.innerWidth - paddingX;
+      const availableHeight = window.innerHeight - paddingY;
+
+      // Calculate scale factors for both dimensions
+      const scaleX = availableWidth / 1123;
+      const scaleY = availableHeight / 794;
+
+      // Pick the smallest scale so it perfectly fits on the screen without scrolling
+      const optimalScale = Math.min(1, scaleX, scaleY);
+
+      setPreviewScale(Math.max(0.15, optimalScale));
+    };
+
+    updateScale();
+    window.addEventListener('resize', updateScale);
+    return () => window.removeEventListener('resize', updateScale);
+  }, [showCertPreview]);
 
   // --- OMNI-REVOLVER v31.0 (MASTER SYNC ENGINE) ---
   const toBase64 = async (url) => {
@@ -285,25 +313,30 @@ const StudentDashboard = () => {
       {/* INSTITUTIONAL PREVIEW MODAL (v31.0 BEAUTIFIED & RESPONSIVE) */}
       {showCertPreview && activeCertData && (
         <div className="fixed inset-0 z-[110] bg-slate-950/98 backdrop-blur-3xl flex flex-col items-center justify-center overflow-hidden">
-          {/* Modal Header */}
-          <div className="w-full max-w-6xl flex justify-between items-center px-10 py-8">
-            <div>
-              <div className="flex items-center gap-4"><Shield className="w-10 h-10 text-emerald-400" /><h3 className="text-white font-black text-4xl uppercase tracking-tighter leading-none">Official Certification</h3></div>
-              <p className="text-white/30 text-[11px] font-black uppercase tracking-widest mt-2 ml-14">Institutional Master Design v31.0 Sync Enabled</p>
+          {/* Header section optimized for mobile readability */}
+          <div className="w-full max-w-6xl flex flex-col md:flex-row justify-between items-start md:items-center px-6 md:px-10 py-6 md:py-8 gap-4 md:gap-0 shrink-0 z-10">
+            <div className="w-full md:w-auto mt-6 md:mt-0">
+              <div className="flex items-center gap-3 md:gap-4">
+                <Shield className="w-8 h-8 md:w-10 md:h-10 text-emerald-400 shrink-0" />
+                <h3 className="text-white font-black text-2xl md:text-4xl uppercase tracking-tighter leading-none">Official Certification</h3>
+              </div>
+              <p className="text-white/30 text-[9px] md:text-[11px] font-black uppercase tracking-widest mt-2 ml-11 md:ml-14">Institutional Master Design v31.0 Sync Enabled</p>
             </div>
-            <div className="flex items-center gap-6">
-              <button onClick={handleDownloadPDF} disabled={isGeneratingCert} className="px-14 py-5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-[2rem] font-black uppercase tracking-widest text-sm shadow-2xl flex items-center gap-4 transition-all active:scale-95 disabled:opacity-50">
-                {isGeneratingCert ? <Loader2 className="w-5 h-5 animate-spin" /> : <Download className="w-5 h-5" />}
-                {isGeneratingCert ? 'Exporting...' : 'Download Master PDF'}
+            <div className="flex w-full md:w-auto items-center gap-4 md:gap-6 mt-2 md:mt-0">
+              <button onClick={handleDownloadPDF} disabled={isGeneratingCert} className="flex-1 md:flex-none px-6 md:px-14 py-4 md:py-5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl md:rounded-[2rem] font-black uppercase tracking-widest text-xs md:text-sm shadow-2xl flex items-center justify-center gap-2 md:gap-4 transition-all active:scale-95 disabled:opacity-50">
+                {isGeneratingCert ? <Loader2 className="w-4 h-4 md:w-5 md:h-5 animate-spin" /> : <Download className="w-4 h-4 md:w-5 md:h-5" />}
+                {isGeneratingCert ? 'Exporting...' : 'Download your E-Certificate'}
               </button>
-              <button onClick={() => setShowCertPreview(false)} className="w-16 h-16 bg-white/5 hover:bg-white/10 text-white rounded-full flex items-center justify-center transition-all active:scale-90"><X className="w-8 h-8" /></button>
+              <button onClick={() => setShowCertPreview(false)} className="absolute top-4 right-4 md:static w-12 h-12 md:w-16 md:h-16 bg-white/10 hover:bg-white/20 text-white rounded-full flex items-center justify-center transition-all z-20 active:scale-90">
+                <X className="w-6 h-6 md:w-8 md:h-8" />
+              </button>
             </div>
           </div>
 
           {/* Modal Main Content (Scrollable Container) */}
           <div className="flex-1 w-full flex items-center justify-center p-4 overflow-auto custom-scrollbar-smooth">
-            <div className="bg-slate-900/50 p-12 md:p-20 rounded-[5rem] shadow-2xl border-4 border-white/5 flex items-center justify-center relative min-h-fit">
-              <div className="relative" style={{ transform: 'scale(0.7)', transformOrigin: 'center center', width: '1123px', height: '794px' }}>
+            <div className="bg-slate-900/50 p-6 md:p-20 rounded-[5rem] shadow-2xl border-4 border-white/5 flex items-center justify-center relative min-h-fit" style={{ minHeight: `${794 * previewScale + 100}px` }}>
+              <div className="relative" style={{ transform: `scale(${previewScale})`, transformOrigin: 'center center', width: '1123px', height: '794px' }}>
                 <div id="master-student-replica" style={{ width: '1123px', height: '794px', background: '#fff', position: 'relative', color: '#000', fontFamily: "'Times New Roman', serif", overflow: 'hidden', boxShadow: '0 50px 100px -20px rgba(0,0,0,0.5)' }}>
                   <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap" rel="stylesheet" />
                   <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 0, transform: `translate(${(parseInt(certSettings.cert_bg_x) || 0)}px, ${(parseInt(certSettings.cert_bg_y) || 0)}px) scale(${(parseInt(certSettings.cert_bg_size) || 100)/100})` }}>

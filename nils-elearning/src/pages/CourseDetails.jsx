@@ -353,7 +353,7 @@ const CourseDetails = () => {
             <div className="flex w-full md:w-auto items-center gap-4 md:gap-6 mt-2 md:mt-0">
               <button onClick={handleDownloadPDF} disabled={isGeneratingCert} className="flex-1 md:flex-none px-6 md:px-14 py-4 md:py-5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl md:rounded-[2rem] font-black uppercase tracking-widest text-xs md:text-sm shadow-2xl flex items-center justify-center gap-2 md:gap-4 transition-all active:scale-95 disabled:opacity-50">
                 {isGeneratingCert ? <Loader2 className="w-4 h-4 md:w-5 md:h-5 animate-spin" /> : <Download className="w-4 h-4 md:w-5 md:h-5" />}
-                {isGeneratingCert ? 'Exporting...' : 'Download Master PDF'}
+                {isGeneratingCert ? 'Exporting...' : 'Download your E-Certificate'}
               </button>
               <button onClick={() => setShowCertPreview(false)} className="absolute top-4 right-4 md:static w-12 h-12 md:w-16 md:h-16 bg-white/10 hover:bg-white/20 text-white rounded-full flex items-center justify-center transition-all z-20">
                 <X className="w-6 h-6 md:w-8 md:h-8" />
