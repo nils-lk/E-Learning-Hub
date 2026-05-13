@@ -2,13 +2,76 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '../supabaseClient';
 import CourseCard from '../components/CourseCard';
 import LoadingSpinner from '../components/LoadingSpinner';
-import { Search, SlidersHorizontal, BookOpen, TrendingUp, Users, Award } from 'lucide-react';
+import { Search, SlidersHorizontal, BookOpen, TrendingUp, Users, Award, ShieldCheck, X, CheckCircle2 } from 'lucide-react';
 
 const Home = () => {
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all'); // 'all' | 'free' | 'paid'
+
+  const [showVerifyModal, setShowVerifyModal] = useState(false);
+  const [verifyId, setVerifyId] = useState('');
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [verifyResult, setVerifyResult] = useState(null);
+
+  const handleVerify = async () => {
+    if (!verifyId.trim()) return;
+    setIsVerifying(true);
+    setVerifyResult(null);
+
+    try {
+      // 1. Try the secure RPC first (Best for Public/Unregistered users)
+      const { data, error } = await supabase.rpc('verify_certificate', { input_id: verifyId.trim() });
+
+      if (!error && data && data.length > 0 && data[0].valid) {
+        setVerifyResult({
+          valid: true,
+          studentName: data[0].student_name,
+          courseTitle: data[0].course_title,
+          date: data[0].issued_date
+        });
+        setIsVerifying(false);
+        return;
+      }
+
+      // 2. Fallback: Direct Query (Works for logged-in students if RPC isn't set up yet)
+      const parts = verifyId.trim().toUpperCase().split('-');
+      const extractedId = parts.length >= 3 ? (parts[2].length === 8 ? parts[2] : parts[1]) : verifyId.trim();
+      const targetId = extractedId.toLowerCase();
+
+      if (targetId.length >= 8) {
+        const prefix = targetId.slice(0, 8);
+        const minUuid = `${prefix}-0000-0000-0000-000000000000`;
+        const maxUuid = `${prefix}-ffff-ffff-ffff-ffffffffffff`;
+
+        const { data: directData, error: directError } = await supabase
+          .from('enrollments')
+          .select('*, courses(title), profiles(full_name, name_with_initials)')
+          .gte('id', minUuid)
+          .lte('id', maxUuid)
+          .in('status', ['approved', 'completed']);
+
+        if (!directError && directData && directData.length > 0) {
+          const en = directData[0];
+          setVerifyResult({
+            valid: true,
+            studentName: en.profiles?.name_with_initials || en.profiles?.full_name || 'N/A',
+            courseTitle: en.courses?.title || 'N/A',
+            date: new Date(en.updated_at || en.created_at || Date.now()).toLocaleDateString('en-GB')
+          });
+          setIsVerifying(false);
+          return;
+        }
+      }
+
+      setVerifyResult({ valid: false });
+    } catch (err) {
+      console.error(err);
+      setVerifyResult({ valid: false });
+    }
+    setIsVerifying(false);
+  };
 
   useEffect(() => {
     const fetchCourses = async () => {
@@ -78,6 +141,16 @@ const Home = () => {
               className="w-full pl-11 pr-4 py-3.5 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-2xl shadow-xl text-sm focus:outline-none focus:ring-2 focus:ring-nilsGold"
             />
           </div>
+
+          <div className="mt-8 flex justify-center animate-slide-up" style={{ animationDelay: '100ms' }}>
+            <button 
+              onClick={() => setShowVerifyModal(true)}
+              className="px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-full font-bold text-sm tracking-wide transition-all flex items-center gap-2 border border-white/10 backdrop-blur-md"
+            >
+              <ShieldCheck className="w-5 h-5 text-nilsGold" />
+              Verify a Certificate
+            </button>
+          </div>
         </div>
       </section>
 
@@ -144,6 +217,67 @@ const Home = () => {
           </div>
         )}
       </section>
+
+      {/* Verify Modal */}
+      {showVerifyModal && (
+        <div className="fixed inset-0 z-[200] bg-slate-900/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-gray-900 rounded-[2rem] shadow-2xl w-full max-w-md overflow-hidden animate-slide-up">
+            <div className="px-8 py-6 border-b border-slate-100 dark:border-white/5 flex items-center justify-between">
+              <h3 className="font-black uppercase tracking-tighter text-xl text-slate-800 dark:text-white flex items-center gap-2">
+                <ShieldCheck className="w-6 h-6 text-emerald-500" />
+                Verify Certificate
+              </h3>
+              <button onClick={() => { setShowVerifyModal(false); setVerifyResult(null); setVerifyId(''); }} className="p-2 hover:bg-slate-100 dark:hover:bg-white/5 rounded-full transition-colors">
+                <X className="w-5 h-5 text-slate-400" />
+              </button>
+            </div>
+            
+            <div className="p-8 space-y-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Certificate ID</label>
+                <input 
+                  type="text" 
+                  value={verifyId} 
+                  onChange={e => setVerifyId(e.target.value)} 
+                  placeholder="e.g. NILS-CERT-1A2B3C4D-2026"
+                  className="w-full px-5 py-4 bg-slate-50 dark:bg-white/5 border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-nilsBlue-500 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-600 uppercase"
+                />
+              </div>
+
+              <button 
+                onClick={handleVerify} 
+                disabled={isVerifying || !verifyId.trim()} 
+                className="w-full py-4 bg-nilsBlue-600 hover:bg-nilsBlue-700 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl shadow-nilsBlue-200 dark:shadow-none transition-all flex justify-center items-center gap-2 disabled:opacity-50"
+              >
+                {isVerifying ? <LoadingSpinner size="sm" /> : 'Verify'}
+              </button>
+
+              {verifyResult && (
+                <div className={`p-5 rounded-2xl border ${verifyResult.valid ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800/50' : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800/50'}`}>
+                  {verifyResult.valid ? (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400 font-bold">
+                        <CheckCircle2 className="w-5 h-5" />
+                        Valid Certificate Found
+                      </div>
+                      <div className="text-sm space-y-1 text-slate-700 dark:text-slate-300">
+                        <p><span className="text-slate-400 font-semibold text-xs uppercase">Student:</span> <br/>{verifyResult.studentName}</p>
+                        <p><span className="text-slate-400 font-semibold text-xs uppercase">Course:</span> <br/>{verifyResult.courseTitle}</p>
+                        <p><span className="text-slate-400 font-semibold text-xs uppercase">Issued:</span> <br/>{verifyResult.date}</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-red-700 dark:text-red-400 font-bold flex items-center gap-2">
+                      <X className="w-5 h-5" />
+                      Invalid or Not Found
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
